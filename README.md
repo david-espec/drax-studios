@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Drax Studio
 
-## Getting Started
+Gravador de tela + editor de vídeo, local-first. Grava, edita e exporta tudo no navegador — os vídeos ficam no dispositivo do usuário (IndexedDB), nada é enviado a servidor.
 
-First, run the development server:
+## Rodando localmente
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Next.js (App Router) + TypeScript + Tailwind. Gravação via `getDisplayMedia`/`getUserMedia` + `MediaRecorder`. Edição e exportação via `ffmpeg.wasm` (self-hosted em `public/ffmpeg-core`, sem depender de CDN externo). Armazenamento em IndexedDB (`idb`).
 
-## Learn More
+## Princípios
 
-To learn more about Next.js, take a look at the following resources:
+- **Local-first**: processamento (gravação, edição, exportação) acontece no dispositivo. Nada é enviado a servidor por padrão.
+- **Privacidade**: "seus vídeos são seus" — o usuário controla onde os vídeos ficam e quando são excluídos. Nenhum vídeo sai do dispositivo sem uma ação explícita do usuário (ex: compartilhar).
+- **GRAVAR é a ação central**: o fluxo principal é Gravar → Editar → Vídeo Pronto, sem fricção.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Roadmap
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Captura** (feito) — gravação de tela/janela/aba/câmera, áudio processado, qualidade configurável.
+2. **Edição** (feito) — timeline, corte/divisão, filtros, overlays, exportação local.
+3. **Inteligência** (futuro) — legendas automáticas, transcrição, remoção de ruído avançada. Avaliar se roda local (modelos pequenos via WASM) ou vira o gatilho para processamento em nuvem.
+4. **Cloud** (futuro) — "DRAX Cloud" como evolução opt-in (sincronizar entre dispositivos), não como requisito. Não deve enfraquecer o modelo local-first por padrão.
 
-## Deploy on Vercel
+Empacotamento para Desktop (Tauri) e Mobile (Capacitor) reaproveitando esta mesma base web: planejado para depois da Fase 1 web.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Decisões em aberto (backlog)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Bloqueio de app / login**: discutido, mas adiado a pedido do usuário (2026-08-29). Duas camadas possíveis, não implementadas ainda:
+  - Trava de tela local (PIN/senha/biometria) — não criptografa os dados, só controla acesso à interface.
+  - Criptografia real dos vídeos usando a senha como chave — proteção de verdade, mas exige decidir a política de recuperação (frase de recuperação vs. sem recuperação possível) antes de implementar.
+  - **Retomar esse assunto quando**: o app ganhar sincronização em nuvem (Cloud), ou quando o volume de usuários/pedidos justificar o investimento em uma politica de recuperação de senha bem definida.
+- **Retenção de dados**: hoje os vídeos ficam salvos indefinidamente até exclusão manual. Avaliar adicionar uma política de retenção configurável (ex: excluir automaticamente após X dias) na tela de Configurações.
