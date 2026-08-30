@@ -1,0 +1,55 @@
+name: Build APK Android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "src/**"
+      - "public/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/android-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Sem NEXT_PUBLIC_BASE_PATH: dentro do app nativo os arquivos sao
+      # servidos da raiz, ao contrario do GitHub Pages (que usa /<repo>/).
+      - name: Build (export estatico)
+        run: npm run build
+
+      - name: Sincronizar projeto Android
+        run: npx cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Build APK debug
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drax-studio-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
