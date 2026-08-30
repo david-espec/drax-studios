@@ -10,24 +10,38 @@ export interface SilenceDetectionOptions {
   minSilenceDuration?: number;
   /** Seconds of speech-side padding kept around each cut so words aren't clipped. */
   paddingSec?: number;
+  /** If silence covers at least this fraction of the track, treat it as intentionally quiet and suggest nothing. */
+  mostlySilentRatio?: number;
+}
+
+export interface SilenceDetectionResult {
+  ranges: SilentRange[];
+  duration: number;
+  /** True when the track is almost entirely silence (e.g. a deliberately muted recording) — no cuts are suggested in that case. */
+  mostlySilent: boolean;
 }
 
 const DEFAULTS: Required<SilenceDetectionOptions> = {
   thresholdDb: -50,
   minSilenceDuration: 0.6,
   paddingSec: 0.15,
+  mostlySilentRatio: 0.9,
 };
+
+const EMPTY_RESULT: SilenceDetectionResult = { ranges: [], duration: 0, mostlySilent: false };
 
 /**
  * Detects silent stretches in an audio/video file's audio track by measuring
  * RMS energy over short windows. Returns ranges (in the file's own seconds)
- * long enough and quiet enough to be worth cutting.
+ * long enough and quiet enough to be worth cutting. A track that is almost
+ * entirely silent (e.g. deliberately recorded muted, to add music later) is
+ * left untouched rather than fragmented into dozens of suggested cuts.
  */
 export async function detectSilentRanges(
   blob: Blob,
   options: SilenceDetectionOptions = {}
-): Promise<SilentRange[]> {
-  const { thresholdDb, minSilenceDuration, paddingSec } = { ...DEFAULTS, ...options };
+): Promise<SilenceDetectionResult> {
+  const { thresholdDb, minSilenceDuration, paddingSec, mostlySilentRatio } = { ...DEFAULTS, ...options };
 
   const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
   const audioCtx = new AudioCtx();
@@ -36,7 +50,7 @@ export async function detectSilentRanges(
     const arrayBuffer = await blob.arrayBuffer();
     audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
   } catch {
-    return [];
+    return EMPTY_RESULT;
   } finally {
     await audioCtx.close().catch(() => {});
   }
@@ -65,23 +79,38 @@ export async function detectSilentRanges(
   const ranges: SilentRange[] = [];
   let silentStartSample: number | null = null;
 
-  for (let start = 0; start <= totalSamples; start += windowSize) {
+  const closeRange = (endSample: number) => {
+    if (silentStartSample === null) return;
+    const startSec = silentStartSample / sampleRate;
+    const endSec = endSample / sampleRate;
+    if (endSec - startSec >= minSilenceDuration) {
+      const paddedStart = startSec + paddingSec;
+      const paddedEnd = endSec - paddingSec;
+      if (paddedEnd > paddedStart) ranges.push({ start: paddedStart, end: paddedEnd });
+    }
+    silentStartSample = null;
+  };
+
+  for (let start = 0; start < totalSamples; start += windowSize) {
     const end = Math.min(start + windowSize, totalSamples);
-    const silent = start < totalSamples && isWindowSilent(start, end);
+    const silent = isWindowSilent(start, end);
 
     if (silent && silentStartSample === null) {
       silentStartSample = start;
     } else if (!silent && silentStartSample !== null) {
-      const startSec = silentStartSample / sampleRate;
-      const endSec = start / sampleRate;
-      if (endSec - startSec >= minSilenceDuration) {
-        const paddedStart = startSec + paddingSec;
-        const paddedEnd = endSec - paddingSec;
-        if (paddedEnd > paddedStart) ranges.push({ start: paddedStart, end: paddedEnd });
-      }
-      silentStartSample = null;
+      closeRange(start);
     }
   }
+  // A silent stretch that runs all the way to the end of the buffer never hits
+  // a non-silent window to close it out, so it must be closed explicitly here.
+  closeRange(totalSamples);
 
-  return ranges;
+  const totalSilentSec = ranges.reduce((acc, r) => acc + (r.end - r.start), 0);
+  const mostlySilent = audioBuffer.duration > 0 && totalSilentSec / audioBuffer.duration >= mostlySilentRatio;
+
+  return {
+    ranges: mostlySilent ? [] : ranges,
+    duration: audioBuffer.duration,
+    mostlySilent,
+  };
 }

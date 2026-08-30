@@ -6,6 +6,12 @@ import type { ClipSegment } from "@/lib/types";
 import type { ClipRange } from "@/hooks/useTimelinePlayer";
 import { formatDuration } from "@/lib/format";
 
+export interface SilenceMarker {
+  id: string;
+  globalStart: number;
+  globalEnd: number;
+}
+
 export function Timeline({
   ranges,
   totalDuration,
@@ -17,6 +23,9 @@ export function Timeline({
   onRemove,
   onMove,
   onTrim,
+  silenceMarkers,
+  selectedMarkerId,
+  onSelectMarker,
 }: {
   ranges: ClipRange[];
   totalDuration: number;
@@ -28,6 +37,9 @@ export function Timeline({
   onRemove: (id: string) => void;
   onMove: (id: string, dir: -1 | 1) => void;
   onTrim: (id: string, patch: Partial<ClipSegment>) => void;
+  silenceMarkers?: SilenceMarker[];
+  selectedMarkerId?: string | null;
+  onSelectMarker?: (id: string) => void;
 }) {
   const trackRef = useRef<HTMLDivElement | null>(null);
 
@@ -172,6 +184,27 @@ export function Timeline({
             );
           })}
         </div>
+
+        {(silenceMarkers ?? []).map((marker) => {
+          const leftPct = (marker.globalStart / (totalDuration || 1)) * 100;
+          const widthPct = ((marker.globalEnd - marker.globalStart) / (totalDuration || 1)) * 100;
+          const selected = marker.id === selectedMarkerId;
+          return (
+            <div
+              key={marker.id}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                onSeek(marker.globalStart);
+                onSelectMarker?.(marker.id);
+              }}
+              title="Trecho de silêncio detectado"
+              className={`absolute bottom-0 h-2 cursor-pointer rounded-sm transition-all ${
+                selected ? "bg-accent-orange ring-2 ring-accent-orange" : "bg-accent-orange/60 hover:bg-accent-orange"
+              }`}
+              style={{ left: `${leftPct}%`, width: `${Math.max(widthPct, 0.5)}%` }}
+            />
+          );
+        })}
 
         <div
           className="pointer-events-none absolute top-0 h-full w-0.5 bg-accent-red"

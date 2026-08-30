@@ -2,20 +2,21 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Undo2, Redo2, Upload, Download, Loader2, Wand2 } from "lucide-react";
+import { Undo2, Redo2, Upload, Download, Loader2, Wand2, Trash2, X } from "lucide-react";
 import { useEditorProject } from "@/hooks/useEditorProject";
 import { useTimelinePlayer } from "@/hooks/useTimelinePlayer";
+import { useSilenceMarkers } from "@/hooks/useSilenceMarkers";
 import { PreviewStage } from "./PreviewStage";
 import { Timeline } from "./Timeline";
 import { ClipInspector } from "./ClipInspector";
 import { OverlayPanel } from "./OverlayPanel";
 import { AudioPanel } from "./AudioPanel";
 import { ExportDialog } from "./ExportDialog";
-import { SmartCutDialog } from "./SmartCutDialog";
 import { importMediaFile } from "@/lib/import";
 import { generateThumbnail, getVideoMetadata } from "@/lib/export";
 import { saveVideo } from "@/lib/db";
 import { loadSettings } from "@/lib/settings";
+import { formatDuration } from "@/lib/format";
 import type { EditorProject, Resolution, VideoAsset } from "@/lib/types";
 
 type Tab = "clip" | "overlays" | "audio";
@@ -26,8 +27,8 @@ export function EditorWorkspace({ initialProject }: { initialProject: EditorProj
   const player = useTimelinePlayer(editor.project.clips);
   const [tab, setTab] = useState<Tab>("clip");
   const [showExport, setShowExport] = useState(false);
-  const [showSmartCut, setShowSmartCut] = useState(false);
   const [savingAfterExport, setSavingAfterExport] = useState(false);
+  const silence = useSilenceMarkers(player.ranges, editor.applyCutRanges);
   const addClipInputRef = useRef<HTMLInputElement | null>(null);
   const settings = loadSettings();
 
@@ -100,10 +101,12 @@ export function EditorWorkspace({ initialProject }: { initialProject: EditorProj
           </button>
           <input ref={addClipInputRef} type="file" accept="video/*" hidden onChange={handleAddClip} />
           <button
-            onClick={() => setShowSmartCut(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-surface-2"
+            onClick={silence.analyze}
+            disabled={silence.analyzing}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-surface-2 disabled:opacity-50"
           >
-            <Wand2 size={13} /> Detectar silêncios
+            {silence.analyzing ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
+            Detectar silêncios
           </button>
           <button
             onClick={() => setShowExport(true)}
@@ -156,6 +159,22 @@ export function EditorWorkspace({ initialProject }: { initialProject: EditorProj
         </div>
       </div>
 
+      {silence.hasPending && (
+        <SilenceReviewBar
+          markers={silence.markers}
+          selectedMarkerId={silence.selectedMarkerId}
+          onRemoveOne={silence.removeMarker}
+          onIgnoreOne={silence.dismissMarker}
+          onRemoveAll={silence.removeAll}
+          onDismissAll={silence.dismissAll}
+        />
+      )}
+      {!silence.hasPending && silence.hasMostlySilentAsset && (
+        <div className="border-t border-border bg-surface px-4 py-2 text-xs text-muted">
+          Um dos clipes parece não ter áudio perceptível (ex: gravação muda para adicionar música depois) — nenhum corte foi sugerido nele.
+        </div>
+      )}
+
       <Timeline
         ranges={player.ranges}
         totalDuration={player.totalDuration}
@@ -167,6 +186,9 @@ export function EditorWorkspace({ initialProject }: { initialProject: EditorProj
         onRemove={editor.removeClip}
         onMove={editor.moveClip}
         onTrim={editor.updateClip}
+        silenceMarkers={silence.markers}
+        selectedMarkerId={silence.selectedMarkerId}
+        onSelectMarker={silence.setSelectedMarkerId}
       />
 
       {showExport && (
@@ -181,17 +203,6 @@ export function EditorWorkspace({ initialProject }: { initialProject: EditorProj
         />
       )}
 
-      {showSmartCut && (
-        <SmartCutDialog
-          ranges={player.ranges}
-          onClose={() => setShowSmartCut(false)}
-          onApply={(cutsByClipId) => {
-            editor.applyCutRanges(cutsByClipId);
-            setShowSmartCut(false);
-          }}
-        />
-      )}
-
       {savingAfterExport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="flex items-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm">
@@ -199,6 +210,70 @@ export function EditorWorkspace({ initialProject }: { initialProject: EditorProj
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SilenceReviewBar({
+  markers,
+  selectedMarkerId,
+  onRemoveOne,
+  onIgnoreOne,
+  onRemoveAll,
+  onDismissAll,
+}: {
+  markers: { id: string; globalStart: number; globalEnd: number }[];
+  selectedMarkerId: string | null;
+  onRemoveOne: (id: string) => void;
+  onIgnoreOne: (id: string) => void;
+  onRemoveAll: () => void;
+  onDismissAll: () => void;
+}) {
+  const selected = markers.find((m) => m.id === selectedMarkerId);
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-border bg-surface px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+      {selected ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-accent-orange">●</span>
+          <span>
+            Silêncio de {formatDuration(selected.globalEnd - selected.globalStart)} em{" "}
+            {formatDuration(selected.globalStart)}. Ouça no player antes de decidir.
+          </span>
+          <button
+            onClick={() => onRemoveOne(selected.id)}
+            className="flex items-center gap-1 rounded-lg bg-danger px-2.5 py-1 text-xs font-semibold text-white"
+          >
+            <Trash2 size={12} /> Remover este trecho
+          </button>
+          <button
+            onClick={() => onIgnoreOne(selected.id)}
+            className="rounded-lg border border-border px-2.5 py-1 text-xs font-medium hover:bg-surface-2"
+          >
+            Ignorar
+          </button>
+        </div>
+      ) : (
+        <p className="text-sm text-muted">
+          {markers.length} trecho{markers.length > 1 ? "s" : ""} de silêncio marcado
+          {markers.length > 1 ? "s" : ""} na timeline (laranja). Clique em um para revisar antes de remover.
+        </p>
+      )}
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onRemoveAll}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-surface-2"
+        >
+          <Trash2 size={12} /> Remover todos
+        </button>
+        <button
+          onClick={onDismissAll}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted hover:bg-surface-2"
+        >
+          <X size={12} /> Descartar sugestões
+        </button>
+      </div>
     </div>
   );
 }

@@ -34,7 +34,7 @@ Next.js (App Router) + TypeScript + Tailwind. Gravação via `getDisplayMedia`/`
 1. **Captura** (feito) — gravação de tela/janela/aba/câmera, áudio processado, qualidade configurável.
 2. **Edição** (feito, além do MVP) — timeline, corte/divisão, filtros, overlays, exportação local. Editor manual está congelado em escopo: não adicionar mais ferramentas manuais por padrão (ver "Decisões em aberto" abaixo).
 3. **Inteligência** (em andamento):
-   - **Corte inteligente por silêncio** (feito) — analisa a trilha de áudio (Web Audio API, RMS por janela) e sugere remoção de trechos silenciosos direto na timeline, com revisão/seleção antes de aplicar.
+   - **Corte inteligente por silêncio** (feito) — analisa a trilha de áudio (Web Audio API, RMS por janela) e marca trechos de silêncio diretamente na timeline (laranja). O usuário revisa ponto a ponto — ouve o trecho no player antes de decidir "Remover" ou "Ignorar" — nunca aplica em massa sem contexto. Um clipe quase todo silencioso (ex: gravação muda de propósito para adicionar música depois) não gera nenhuma sugestão.
    - **Melhorar áudio (1 clique)** (próximo) — expor o pipeline de processamento de áudio já existente (ruído/eco/ganho/normalização) como uma única ação, em vez de toggles separados.
    - Depois: legendas automáticas, transcrição. Avaliar se roda local (modelos pequenos via WASM) ou vira o gatilho para processamento em nuvem.
 4. **Cloud** (futuro) — "DRAX Cloud" como evolução opt-in (sincronizar entre dispositivos), não como requisito. Não deve enfraquecer o modelo local-first por padrão.
