@@ -1,5 +1,6 @@
 package com.draxstudio.app;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -11,18 +12,24 @@ import android.provider.Settings;
 import androidx.activity.result.ActivityResult;
 
 import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
 /**
  * Bridges the web app to real Android screen recording: the "draw over other
  * apps" permission, the MediaProjection capture prompt, and the floating
  * control bubble — none of which have a web equivalent.
  */
-@CapacitorPlugin(name = "ScreenRecorder")
+@CapacitorPlugin(
+    name = "ScreenRecorder",
+    permissions = { @Permission(strings = { Manifest.permission.RECORD_AUDIO }, alias = "microphone") }
+)
 public class ScreenRecorderPlugin extends Plugin implements ScreenRecordService.Callback {
 
     private PluginCall pendingStartCall;
@@ -69,6 +76,27 @@ public class ScreenRecorderPlugin extends Plugin implements ScreenRecordService.
             return;
         }
 
+        boolean wantsAudio = call.getBoolean("audio", true);
+        if (wantsAudio && getPermissionState("microphone") != PermissionState.GRANTED) {
+            call.setKeepAlive(true);
+            requestPermissionForAlias("microphone", call, "microphonePermissionCallback");
+            return;
+        }
+
+        beginScreenCapture(call, wantsAudio);
+    }
+
+    @PermissionCallback
+    private void microphonePermissionCallback(PluginCall call) {
+        if (call == null) return;
+        // Mic is a nice-to-have, not the blocking permission (that's overlay,
+        // handled above): if the user denies it, record without audio instead
+        // of failing the whole recording outright.
+        boolean granted = getPermissionState("microphone") == PermissionState.GRANTED;
+        beginScreenCapture(call, granted);
+    }
+
+    private void beginScreenCapture(PluginCall call, boolean withAudio) {
         Activity activity = getActivity();
         MediaProjectionManager manager = (MediaProjectionManager) activity.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         if (manager == null) {
@@ -78,7 +106,7 @@ public class ScreenRecorderPlugin extends Plugin implements ScreenRecordService.
 
         pendingStartCall = call;
         call.setKeepAlive(true);
-        ScreenRecordService.pendingWithAudio = call.getBoolean("audio", true);
+        ScreenRecordService.pendingWithAudio = withAudio;
 
         Intent captureIntent = manager.createScreenCaptureIntent();
         startActivityForResult(call, captureIntent, "screenCaptureResult");
