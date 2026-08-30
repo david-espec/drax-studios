@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { InstallProvider } from "@/install/InstallContext";
+import { withBasePath } from "@/lib/base-path";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,6 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Drax Studio",
   description: "Grave sua tela e edite vídeos com qualidade profissional, direto do navegador.",
+  manifest: withBasePath("/manifest.json"),
 };
 
 export const viewport = {
@@ -30,7 +34,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AppShell>{children}</AppShell>
+        <ServiceWorkerRegister />
+        <InstallProvider>
+          <AppShell>{children}</AppShell>
+        </InstallProvider>
       </body>
     </html>
   );

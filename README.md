@@ -23,6 +23,8 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 Next.js (App Router) + TypeScript + Tailwind. Gravação via `getDisplayMedia`/`getUserMedia` + `MediaRecorder`. Edição e exportação via `ffmpeg.wasm` (self-hosted em `public/ffmpeg-core`, sem depender de CDN externo). Armazenamento em IndexedDB (`idb`).
 
+PWA instalável: `public/manifest.json` + `public/sw.js` (cache stale-while-revalidate simples, sem Workbox). O botão "Baixar app" (`src/install/`) abre um modal explicando o que a instalação faz antes de confirmar, no mesmo padrão do Music-fly — usa a API `beforeinstallprompt` quando o navegador oferece a caixa nativa, e cai para um passo a passo manual (inclusive no iPhone, que nunca oferece a caixa nativa) quando não.
+
 ## Publicar no GitHub Pages
 
 O app é 100% client-side (sem rotas de servidor), então é exportado como site estático (`output: "export"` no `next.config.ts`). O workflow `.github/workflows/pages.yml` faz a build com o prefixo correto (`/drax-studios/`, via `NEXT_PUBLIC_BASE_PATH`) e publica a cada push na branch `main`.

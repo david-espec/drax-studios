@@ -1,0 +1,18 @@
+{
+  "name": "Drax Studio",
+  "short_name": "Drax Studio",
+  "description": "Grave sua tela, edite e exporte vídeos direto do navegador — tudo local, sem enviar nada para servidor.",
+  "lang": "pt-BR",
+  "theme_color": "#0b0c0f",
+  "background_color": "#0b0c0f",
+  "display": "standalone",
+  "orientation": "any",
+  "start_url": ".",
+  "scope": ".",
+  "categories": ["productivity", "video", "utilities"],
+  "icons": [
+    { "src": "brand/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "brand/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

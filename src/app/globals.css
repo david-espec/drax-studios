@@ -10,6 +10,7 @@
   --accent-red: #ff3b30;
   --accent-orange: #ff8a3d;
   --accent-blue: #2f9bff;
+  --accent-purple: #8b5cf6;
   --accent-gradient: linear-gradient(90deg, var(--accent-blue), var(--accent-orange), var(--accent-red));
   --danger: #ff453a;
   --success: #34c759;
@@ -25,6 +26,7 @@
   --color-accent-red: var(--accent-red);
   --color-accent-orange: var(--accent-orange);
   --color-accent-blue: var(--accent-blue);
+  --color-accent-purple: var(--accent-purple);
   --color-danger: var(--danger);
   --color-success: var(--success);
   --font-sans: var(--font-geist-sans);
