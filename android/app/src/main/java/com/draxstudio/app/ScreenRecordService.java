@@ -129,6 +129,13 @@ public class ScreenRecordService extends Service {
     }
 
     private void handleStart(Intent intent) {
+        if (isRecording) {
+            // A start arrived while one is already running (e.g. a duplicate
+            // tap that raced past the JS-side guard): reject it without
+            // tearing down the recording that's already in progress.
+            if (callback != null) callback.onError("Já existe uma gravação em andamento.");
+            return;
+        }
         try {
             int resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1);
             Intent resultData = intent.getParcelableExtra(EXTRA_RESULT_DATA);
@@ -141,8 +148,12 @@ public class ScreenRecordService extends Service {
 
             DisplayMetrics metrics = getResources().getDisplayMetrics();
             screenDensity = metrics.densityDpi;
-            videoWidth = roundToEven(metrics.widthPixels);
-            videoHeight = roundToEven(metrics.heightPixels);
+            // Aligned to a multiple of 16: several hardware H.264 encoders
+            // (notably some Mediatek/Qualcomm chipsets) reject or silently
+            // corrupt odd macroblock-unaligned dimensions, which is why this
+            // failed intermittently depending on the device's exact screen size.
+            videoWidth = alignToMacroblock(metrics.widthPixels);
+            videoHeight = alignToMacroblock(metrics.heightPixels);
 
             mediaProjection = projectionManager.getMediaProjection(resultCode, resultData);
             if (mediaProjection == null) {
@@ -182,7 +193,6 @@ public class ScreenRecordService extends Service {
             if (callback != null) callback.onStarted();
         } catch (Exception e) {
             notifyError("Falha ao iniciar a gravação: " + e.getMessage());
-            cleanUp();
         }
     }
 
@@ -203,6 +213,11 @@ public class ScreenRecordService extends Service {
         mediaRecorder.setVideoEncodingBitRate(8_000_000);
         mediaRecorder.setVideoFrameRate(30);
         mediaRecorder.setOutputFile(outputFilePath);
+        mediaRecorder.setOnErrorListener((mr, what, extra) -> {
+            if (isRecording) {
+                notifyError("Erro no gravador durante a captura (código " + what + "/" + extra + ").");
+            }
+        });
         mediaRecorder.prepare();
     }
 
@@ -295,8 +310,9 @@ public class ScreenRecordService extends Service {
         return new File(dir, name).getAbsolutePath();
     }
 
-    private int roundToEven(int value) {
-        return value % 2 == 0 ? value : value - 1;
+    private int alignToMacroblock(int value) {
+        int aligned = value - (value % 16);
+        return Math.max(aligned, 16);
     }
 
     // ---- Notification (required by Android for MediaProjection capture) ----

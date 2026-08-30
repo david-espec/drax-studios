@@ -71,6 +71,10 @@ public class ScreenRecorderPlugin extends Plugin implements ScreenRecordService.
 
     @PluginMethod
     public void startRecording(PluginCall call) {
+        if (pendingStartCall != null) {
+            call.reject("Uma gravação já está sendo iniciada.");
+            return;
+        }
         if (!canDrawOverlays()) {
             call.reject("Permissão para desenhar sobre outros apps não concedida.", "OVERLAY_PERMISSION_DENIED");
             return;
