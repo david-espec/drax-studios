@@ -16,10 +16,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Drax Studio",
   description: "Grave sua tela e edite vídeos com qualidade profissional, direto do navegador.",
-  icons: {
-    icon: "/brand/logo.png",
-    apple: "/brand/logo.png",
-  },
 };
 
 export const viewport = {

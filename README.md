@@ -23,6 +23,16 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 Next.js (App Router) + TypeScript + Tailwind. Gravação via `getDisplayMedia`/`getUserMedia` + `MediaRecorder`. Edição e exportação via `ffmpeg.wasm` (self-hosted em `public/ffmpeg-core`, sem depender de CDN externo). Armazenamento em IndexedDB (`idb`).
 
+## Publicar no GitHub Pages
+
+O app é 100% client-side (sem rotas de servidor), então é exportado como site estático (`output: "export"` no `next.config.ts`). O workflow `.github/workflows/pages.yml` faz a build com o prefixo correto (`/drax-studios/`, via `NEXT_PUBLIC_BASE_PATH`) e publica a cada push na branch `main`.
+
+Se for a primeira vez (ou reconfigurando num fork), é preciso **ligar o Pages uma vez, na mão** — o token do GitHub Actions não tem permissão para criar o site sozinho, e a execução falha com `Create Pages site failed: Resource not accessible by integration`:
+
+1. **Settings → Pages** do repositório.
+2. Em **Build and deployment → Source**, escolha **GitHub Actions**.
+3. **Actions → Publicar no GitHub Pages → Run workflow**, ou dê um push na `main`.
+
 ## Princípios
 
 - **Local-first**: processamento (gravação, edição, exportação) acontece no dispositivo. Nada é enviado a servidor por padrão.

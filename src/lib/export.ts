@@ -1,5 +1,6 @@
 import { fetchFile } from "@ffmpeg/util";
 import { getFFmpeg } from "./ffmpeg";
+import { withBasePath } from "./base-path";
 import { RESOLUTION_DIMENSIONS } from "./types";
 import type {
   ClipSegment,
@@ -95,7 +96,7 @@ export async function exportProject(
 
   if (!fontLoaded) {
     try {
-      const fontData = await fetchFile("/fonts/Inter-Bold.ttf");
+      const fontData = await fetchFile(withBasePath("/fonts/Inter-Bold.ttf"));
       await ffmpeg.writeFile("inter.ttf", fontData);
       fontLoaded = true;
     } catch {

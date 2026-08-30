@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { withBasePath } from "@/lib/base-path";
 
 export function Logo({ size = 32, showWordmark = false }: { size?: number; showWordmark?: boolean }) {
   return (
@@ -8,7 +9,7 @@ export function Logo({ size = 32, showWordmark = false }: { size?: number; showW
         style={{ width: size, height: size }}
       >
         <Image
-          src="/brand/logo.png"
+          src={withBasePath("/brand/logo.png")}
           alt="Drax Studio"
           fill
           sizes={`${size}px`}
