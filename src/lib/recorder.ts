@@ -110,6 +110,11 @@ export async function acquireRecordingStreams(config: RecordingConfig, audioSett
     });
     displayStream = micStream;
   } else {
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      throw new Error(
+        "Gravação de tela não é compatível com este navegador ou dispositivo. Use a opção Câmera, ou acesse pelo computador para gravar a tela."
+      );
+    }
     const displayMediaOptions: DisplayMediaStreamOptions & { preferCurrentTab?: boolean } = {
       video: {
         width: { ideal: width },

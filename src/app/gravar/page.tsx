@@ -42,11 +42,14 @@ export default function GravarPage() {
   const [config, setConfig] = useState<RecordingConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedAsset, setSavedAsset] = useState<VideoAsset | null>(null);
+  const [screenCaptureSupported, setScreenCaptureSupported] = useState(true);
 
   useEffect(() => {
+    const supported = typeof navigator !== "undefined" && !!navigator.mediaDevices?.getDisplayMedia;
+    setScreenCaptureSupported(supported);
     const s = loadSettings();
     setConfig({
-      source: "screen",
+      source: supported ? "screen" : "camera",
       quality: s.defaultQuality,
       fps: s.defaultFps,
       audioMode: "both",
@@ -119,10 +122,24 @@ export default function GravarPage() {
         </div>
       )}
 
+      {!screenCaptureSupported && (
+        <div className="mb-6 flex items-start gap-2 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-200">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <span>
+            Gravação de tela não é compatível com este navegador/dispositivo — é uma limitação de
+            celulares (Android e iPhone), não deste app. Use a Câmera aqui, ou acesse pelo computador
+            para gravar a tela.
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface p-5">
         <OptionPicker
           label="Fonte da gravação"
-          options={SOURCE_OPTIONS}
+          options={SOURCE_OPTIONS.map((opt) => ({
+            ...opt,
+            disabled: !screenCaptureSupported && opt.value !== "camera",
+          }))}
           value={config.source}
           onChange={(source) => setConfig({ ...config, source })}
         />
