@@ -21,6 +21,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored browser assets served as static files, not app source.
     "public/**",
+    // Native Capacitor Android project, including its bundled copy of the web build.
+    "android/**",
   ]),
 ]);
 

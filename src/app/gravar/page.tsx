@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Circle, Pause, Play, Square, Mic, MicOff, AlertTriangle } from "lucide-react";
 import { OptionPicker } from "@/components/OptionPicker";
 import { useScreenRecorder } from "@/hooks/useScreenRecorder";
+import { isNativeAndroid } from "@/lib/native-recorder";
 import { loadSettings } from "@/lib/settings";
 import { saveVideo } from "@/lib/db";
 import { generateThumbnail, getVideoMetadata } from "@/lib/export";
@@ -45,7 +46,8 @@ export default function GravarPage() {
   const [screenCaptureSupported, setScreenCaptureSupported] = useState(true);
 
   useEffect(() => {
-    const supported = typeof navigator !== "undefined" && !!navigator.mediaDevices?.getDisplayMedia;
+    const supported =
+      (typeof navigator !== "undefined" && !!navigator.mediaDevices?.getDisplayMedia) || isNativeAndroid();
     setScreenCaptureSupported(supported);
     const s = loadSettings();
     setConfig({

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_overlay_pill"
+    android:paddingStart="8dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp"
+    android:elevation="8dp">
+
+    <ImageView
+        android:id="@+id/bubble_drag_handle"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:padding="5dp"
+        android:src="@drawable/ic_drag_handle"
+        android:contentDescription="@null" />
+
+    <View
+        android:id="@+id/bubble_rec_dot"
+        android:layout_width="8dp"
+        android:layout_height="8dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="6dp"
+        android:background="@drawable/bg_rec_dot" />
+
+    <Chronometer
+        android:id="@+id/bubble_timer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="10dp"
+        android:fontFamily="monospace"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <ImageButton
+        android:id="@+id/bubble_pause"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="Pausar gravação"
+        android:padding="6dp"
+        android:src="@drawable/ic_pause" />
+
+    <ImageButton
+        android:id="@+id/bubble_stop"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginStart="4dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="Finalizar gravação"
+        android:padding="6dp"
+        android:src="@drawable/ic_stop" />
+
+</LinearLayout>
