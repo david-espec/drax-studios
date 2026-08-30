@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Undo2, Redo2, Upload, Download, Loader2 } from "lucide-react";
+import { Undo2, Redo2, Upload, Download, Loader2, Wand2 } from "lucide-react";
 import { useEditorProject } from "@/hooks/useEditorProject";
 import { useTimelinePlayer } from "@/hooks/useTimelinePlayer";
 import { PreviewStage } from "./PreviewStage";
@@ -11,6 +11,7 @@ import { ClipInspector } from "./ClipInspector";
 import { OverlayPanel } from "./OverlayPanel";
 import { AudioPanel } from "./AudioPanel";
 import { ExportDialog } from "./ExportDialog";
+import { SmartCutDialog } from "./SmartCutDialog";
 import { importMediaFile } from "@/lib/import";
 import { generateThumbnail, getVideoMetadata } from "@/lib/export";
 import { saveVideo } from "@/lib/db";
@@ -25,6 +26,7 @@ export function EditorWorkspace({ initialProject }: { initialProject: EditorProj
   const player = useTimelinePlayer(editor.project.clips);
   const [tab, setTab] = useState<Tab>("clip");
   const [showExport, setShowExport] = useState(false);
+  const [showSmartCut, setShowSmartCut] = useState(false);
   const [savingAfterExport, setSavingAfterExport] = useState(false);
   const addClipInputRef = useRef<HTMLInputElement | null>(null);
   const settings = loadSettings();
@@ -98,6 +100,12 @@ export function EditorWorkspace({ initialProject }: { initialProject: EditorProj
           </button>
           <input ref={addClipInputRef} type="file" accept="video/*" hidden onChange={handleAddClip} />
           <button
+            onClick={() => setShowSmartCut(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-surface-2"
+          >
+            <Wand2 size={13} /> Detectar silêncios
+          </button>
+          <button
             onClick={() => setShowExport(true)}
             className="flex items-center gap-1.5 rounded-lg brand-gradient-bg px-3 py-1.5 text-xs font-semibold text-black"
           >
@@ -170,6 +178,17 @@ export function EditorWorkspace({ initialProject }: { initialProject: EditorProj
           defaultFormat={settings.defaultFormat}
           onClose={() => setShowExport(false)}
           onSaved={handleExportSaved}
+        />
+      )}
+
+      {showSmartCut && (
+        <SmartCutDialog
+          ranges={player.ranges}
+          onClose={() => setShowSmartCut(false)}
+          onApply={(cutsByClipId) => {
+            editor.applyCutRanges(cutsByClipId);
+            setShowSmartCut(false);
+          }}
         />
       )}
 

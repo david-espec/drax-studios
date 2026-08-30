@@ -123,6 +123,38 @@ export function useEditorProject(initial: EditorProject) {
     [commit]
   );
 
+  const applyCutRanges = useCallback(
+    (cutsByClipId: Record<string, { start: number; end: number }[]>) => {
+      commit((draft) => {
+        const newClips: ClipSegment[] = [];
+        for (const clip of draft.clips) {
+          const cuts = cutsByClipId[clip.id];
+          if (!cuts || cuts.length === 0) {
+            newClips.push(clip);
+            continue;
+          }
+          const sorted = [...cuts].sort((a, b) => a.start - b.start);
+          let cursor = clip.inPoint;
+          for (const cut of sorted) {
+            const cutStart = Math.max(clip.inPoint, cut.start);
+            const cutEnd = Math.min(clip.outPoint, cut.end);
+            if (cutStart > cursor) {
+              newClips.push({ ...clip, id: crypto.randomUUID(), inPoint: cursor, outPoint: cutStart });
+            }
+            cursor = Math.max(cursor, cutEnd);
+          }
+          if (cursor < clip.outPoint) {
+            newClips.push({ ...clip, id: crypto.randomUUID(), inPoint: cursor, outPoint: clip.outPoint });
+          }
+        }
+        draft.clips = newClips;
+        return draft;
+      });
+      setSelectedClipId(null);
+    },
+    [commit]
+  );
+
   const addClip = useCallback(
     (sourceAssetId: string, sourceDuration: number) => {
       commit((draft) => {
@@ -210,6 +242,7 @@ export function useEditorProject(initial: EditorProject) {
     removeClip,
     moveClip,
     splitClip,
+    applyCutRanges,
     addClip,
     addOverlay,
     updateOverlay,
